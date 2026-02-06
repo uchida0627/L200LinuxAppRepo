@@ -12,10 +12,10 @@ module.exports.GetDataSet = async function () {
 };
 
 
-+ module.exports.Filter = function (objects) {
-+     // 元配列を壊さずに逆順（必要ならソート基準を明示）
-+     return [...objects].reverse();
-+ };
+module.exports.Filter = function (objects) {
+     // 元配列を壊さずに逆順（必要ならソート基準を明示）
+     return [...objects].reverse();
+};
 
 // -----
 // original Filter

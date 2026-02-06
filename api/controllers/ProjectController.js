@@ -2,28 +2,20 @@
 // V2
 //==========
 
-// 何がヒープを消費しているのか確認するためのログ出力
-console.log("mem(MB)", Object.fromEntries(
-  Object.entries(process.memoryUsage()).map(([k,v]) => [k, Math.round(v/1024/1024)])
-));
-console.log("updates length", global.updates?.length);
-console.log("session keys", req.session && Object.keys(req.session));
-console.log("session.projects size approx",
-  req.session?.projects ? JSON.stringify(req.session.projects).length : 0
-);
-
-// global.updates 自体、今回の用途では不要。まずは消すのが最も安全。
-// どうしても残すなら “小さいログ” だけ保持する
-
 module.exports = {
   getAll: async (req, res) => {
     try {
-      const n = Utils.GetNumber();             // 1..5000
-      // DBから全部取って slice しない。最初から limit する。
+      // まずは全件取得をやめて limit を入れる（OOM/遅延の根を減らす）
+      const n = Utils.GetNumber();
       const projects = await Project.find({}).limit(n);
 
-      // セッションには巨大オブジェクトを入れない
-      req.session.projectCount = projects.length;
+      // セッションに巨大オブジェクトを入れない（ここが最重要）
+      // req.session.projects = projects;  // ←削除
+
+      if (projects.length <= 0) {
+        await Utils.GetDataSet();
+        return res.json([]);
+      }
 
       return res.json(projects);
     } catch (e) {
@@ -33,20 +25,32 @@ module.exports = {
 
   getByProject: async (req, res) => {
     try {
-      if (!req.params.id) return res.badRequest("id required");
+      if (!req.params.id) return res.status(400).json({ message: "id required" });
 
-      // まず対象を取る（全件findは不要）
       const project = await Project.findOne({ id: req.params.id });
+      if (!project) return res.status(404).json({ message: "Not Found" });
 
-      if (!project) return res.badRequest(`Project ${req.params.id} not found`);
-
-      // 空DB時だけ seed
-      // （※本当に必要なら count で判定）
       return res.send(project);
     } catch (e) {
-      return res.badRequest(`Project ${req.params.id} not found`);
+      return res.status(400).json({ message: `Project ${req.params.id} not found` });
     }
   },
+
+  displayAll: async function (req, res) {
+    try {
+      const n = Utils.GetNumber();
+      const projects = await Project.find({}).limit(n);
+
+      if (projects.length <= 0) {
+        await Utils.GetDataSet();
+        return res.view('pages/home', { projects: [] });
+      }
+
+      return res.view('pages/home', { projects });
+    } catch (e) {
+      return res.view('pages/home', { projects: [] });
+    }
+  }
 };
 
 // ==========

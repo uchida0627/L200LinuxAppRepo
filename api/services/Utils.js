@@ -28,6 +28,15 @@ module.exports.Filter = function (objects) {
 //     // return updates;
 // };
 
+
+// 数を減らしてみる
 module.exports.GetNumber = function () {
-    return getNumber(1,5000);
+    return getNumber(1,100);
 };
+
+// -----
+// original GetNumber
+// -----
+// module.exports.GetNumber = function () {
+//     return getNumber(1,5000);
+// };
